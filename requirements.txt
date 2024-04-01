@@ -1,0 +1,8 @@
+pandas==1.5.3
+numpy==1.25.2
+scikit-learn==1.2.2
+imbalanced-learn==0.10.1
+optuna==3.6.0
+shap==0.45.0
+lime==0.2.0.1
+matplotlib==3.7.1
