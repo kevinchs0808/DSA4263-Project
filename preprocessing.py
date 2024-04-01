@@ -562,8 +562,11 @@ def preprocess_pipeline(df, encoding, normalization, oversampling_strategy):
     cols_to_drop_list = ["_c39",'policy_number', 'policy_bind_date',
                         'incident_date', 'policy_csl', 'insured_zip',
                          'auto_model', 'auto_year']
+    
     df_features = df.drop(['fraud_reported'], axis=1)
     df_label = df['fraud_reported']
+
+    df_label = df_label.replace({'Y': 1, 'N': 0})
 
     # Train Test Split
     X_train, X_test, y_train, y_test = train_test_split(df_features, df_label,

@@ -1,6 +1,6 @@
 from sklearn.model_selection import cross_val_score
 import optuna
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
 import shap
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -8,76 +8,144 @@ import lime
 
 import parameters
 
-class BaselineModel:
+def merge_dicts(*dicts):
+    '''
+    This function merges dictionaries together.
+    '''
+    return {k: v for d in dicts for k, v in d.items()}
 
-    def __init__(self, information, X_train, X_test, y_train, y_test):
-        self.information = information
-        self.hyperparameters = {}
+class IndividualModel:
+
+    # This is a class that will be used to create a single model.
+    # Please ensure that your function supports sci-kit learn interface.
+    
+    def __init__(self, model_func, param_info, X_train, X_test, y_train, y_test, tuned_params = {}, static_params = {}):
+
+        '''
+        This is the constructor for the IndividualModel class. 
+        Each IndividualModel object will represent a single model warpper function around a sci-kit learn model.
+
+        Parameters:
+
+        model_func: function call to create the model, NOT THE MODEL ITSELF
+        param_info: dictionary that contains information used to finetune the model
+        X_train: training data
+        X_test: testing data
+        y_train: training labels
+        y_test: testing labels
+        tuned_params: dictionary with the tuned hyperparameters for the model, if applicable. Else is empty
+        other_params: dictionary with parameters that are not hyperparameters, such as random_state.
+        '''
+
+        self.model_func = model_func
+
+        # initialise a model
+        all_params = merge_dicts(tuned_params, static_params)
+        self.model = model_func(**all_params)
+
+        self.tuned_params = tuned_params
+        self.static_params = static_params
+
+        # param_info is a dictionary that contains the potential hyperparameters, cross-validation number, Optuna direction, and number of trials
+        # they are used to finetune the model
+        self.param_info = param_info
+
         self.X_train = X_train
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
 
-    def finetuning(self):
+    def train(self):
+        # This is to train the model
+        self.model.fit(self.X_train, self.y_train)
+
+    def predict(self):
+        # This is to generate predictions using a trained model
+        self.y_pred = self.model.predict(self.X_test)
+
+    def train_predict(self):
+        # This is to train and predict in one go
+        self.train()
+        self.predict()
+
+    def finetune(self, **kwargs):
+        '''
+        This function finetunes an individual model using Optuna, and update the model accordingly
+
+        parameters:
+
+        kwargs: additional parameters that can be passed to the optuna.create_study() func
+        '''
+
+        if not len(self.tuned_params) == 0:
+            print("Model has already been finetuned. Existing hyperparameters will discarded.")
+
         def objective(trial):
 
             testing_hyperparameters = {}
 
-            for key, requirement in self.information['potential_hyperparameters'].items():
+            param_candidates = self.param_info['potential_hyperparameters']
+            
+            # Loop through the potential hyperparameters and suggested values
+            for param, requirement in param_candidates.items():
+
                 if requirement['finetune'] == True:
                     if requirement['trial'] == 'categorical':
-                        testing_hyperparameters[key] = trial.suggest_categorical(
-                            name=key, 
+                        testing_hyperparameters[param] = trial.suggest_categorical(
+                            name=param, 
                             choices=requirement['choices']
                         )
 
                     elif requirement['trial'] == 'int':
-                        testing_hyperparameters[key] = trial.suggest_int(
-                            name=key, 
+                        testing_hyperparameters[param] = trial.suggest_int(
+                            name=param, 
                             low=requirement['low_value'], 
                             high=requirement['high_value'], 
                             log=requirement['use_log'],
                             step=requirement['finetuning_step']
                         )
                     elif requirement['trial'] == 'float':
-                        testing_hyperparameters[key] = trial.suggest_float(
-                            name=key, 
+                        testing_hyperparameters[param] = trial.suggest_float(
+                            name=param, 
                             low=requirement['low_value'], 
                             high=requirement['high_value'], 
                             log=requirement['use_log'],
                             step=requirement['finetuning_step']
                         )
                 else:
-                    testing_hyperparameters[key] = requirement['exact_value']
+                    testing_hyperparameters[param] = requirement['exact_value']
         
-            model = self.information['model'](**testing_hyperparameters)
-            score = cross_val_score(estimator=model, X=self.X_train, y=self.y_train, cv=self.information['cv_number']).mean()
+            model = self.model_func(**testing_hyperparameters)
+            score = cross_val_score(
+                estimator=model, X=self.X_train, y=self.y_train, 
+                cv=self.param_info['tuning_options']['cv_number'],
+                ).mean()
             return score
         
-        study = optuna.create_study(direction = self.information["optuna_direction"])
-        study.optimize(objective, n_trials = self.information["n_trials"])
+        tuning_options = self.param_info['tuning_options']
+        
+        # Create new optuna study
+        study = optuna.create_study(direction = tuning_options["optuna_direction"])
+        study.optimize(objective, n_trials = tuning_options["n_trials"])
 
-        trial = study.best_trial
+        chosen_trial = study.best_trial
 
-        self.hyperparameters = trial.params
+        self.tuned_params = chosen_trial.params
 
-        self.validation_score = trial.value
+        self.validation_score = chosen_trial.value
 
-        self.model = self.information['model'](**self.hyperparameters)
+        # Update the model for future usage
 
-        return self.validation_score, self.hyperparameters
+        all_params = merge_dicts(self.tuned_params, self.static_params)
+        self.model = self.model_func(**all_params)
 
-    def train(self):
-        self.model.fit(self.X_train, self.y_train)
-
-    def predict(self):
-        self.y_pred = self.model.predict(self.X_test)
+        return self.validation_score, self.tuned_params
 
     def evaluate(self):
         self.accuracy = accuracy_score(self.y_test, self.y_pred)
-        self.precision = precision_score(self.y_test, self.y_pred, pos_label='Y')
-        self.recall = recall_score(self.y_test, self.y_pred, pos_label='Y')
-        self.f1_score = f1_score(self.y_test, self.y_pred, pos_label='Y')
+        self.precision = precision_score(self.y_test, self.y_pred, pos_label=1)
+        self.recall = recall_score(self.y_test, self.y_pred, pos_label=1)
+        self.f1_score = f1_score(self.y_test, self.y_pred, pos_label=1)
 
         self.performance_score = {
             "accuracy": self.accuracy,
@@ -97,7 +165,7 @@ class BaselineModel:
         sns.heatmap(cm, annot=True, cmap='Blues', fmt='d', cbar=False, ax=ax)
         ax.set_xlabel('Predicted labels')
         ax.set_ylabel('True labels')
-        ax.set_title(f'Confusion Matrix for {self.information["model_name"]}')
+        ax.set_title(f'Confusion Matrix for {self.param_info["model_name"]}')
 
         # Save the figure to the specified path if provided
         if save_path:
@@ -140,13 +208,13 @@ class ModellingPipeline:
 
         for model in models:
 
-            self.models[model['model_name']] = BaselineModel(model, X_train, X_test, y_train, y_test)
+            self.models[model['model_name']] = IndividualModel(model, X_train, X_test, y_train, y_test)
 
-    def execute(self):
+    def tune_all_models(self):
 
         for model_name in self.models.keys():
 
-            validation_score, chosen_hyperparameters = self.models[model_name].finetuning()
+            validation_score, chosen_hyperparameters = self.models[model_name].finetune()
             self.models[model_name].train()
             self.models[model_name].predict()
             performance_score = self.models[model_name].evaluate()
