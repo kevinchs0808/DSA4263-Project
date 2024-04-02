@@ -19,7 +19,11 @@ class IndividualModel:
     # This is a class that will be used to create a single model.
     # Please ensure that your function supports sci-kit learn interface.
     
-    def __init__(self, model_func, param_info, X_train, X_test, y_train, y_test, tuned_params = {}, static_params = {}):
+    def __init__(
+            self, model_func, param_info, 
+            X_train, X_test, y_train, y_test, 
+            tuned_params = {}, static_params = {}
+            ):
 
         '''
         This is the constructor for the IndividualModel class. 
@@ -55,7 +59,12 @@ class IndividualModel:
         self.X_test = X_test
         self.y_test = y_test
 
-    def train(self):
+    def train(self, oversample_method = 'SMOTENC'):
+        '''
+        This method trains model by doing the following:
+        1. Oversample the training data with the specified method
+        2. Fit the model with the oversampled data
+        '''
         # This is to train the model
         self.model.fit(self.X_train, self.y_train)
 
@@ -68,12 +77,13 @@ class IndividualModel:
         self.train()
         self.predict()
 
-    def finetune(self, **kwargs):
+    def finetune(self, oversample_method = 'SMOTENC', metric = "F1 Score", **kwargs):
         '''
         This function finetunes an individual model using Optuna, and update the model accordingly
 
         parameters:
-
+        oversample_method: method to oversample the data. Default is SMOTENC
+        metric: metric to be used to evaluate the model. Default is F1 Score
         kwargs: additional parameters that can be passed to the optuna.create_study() func
         '''
 
