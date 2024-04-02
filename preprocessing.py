@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 from imblearn.over_sampling import SMOTENC, RandomOverSampler, ADASYN
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 
 def one_hot_encode(df, column):
     """
@@ -544,7 +546,7 @@ def imbalanced_dataset_treatment(X, y, oversampling_strategy):
 ################################################################################
 ################################################################################
 
-def preprocess_pipeline(df, encoding, normalization, oversampling_strategy):
+def preprocess_pipeline(df, encoding, normalization):
     """
     Preprocesses the input DataFrame for machine learning modeling.
 
@@ -552,8 +554,6 @@ def preprocess_pipeline(df, encoding, normalization, oversampling_strategy):
     df (DataFrame): The input DataFrame containing features and target variable.
     encoding (bool): Flag indicating whether to perform one-hot encoding of categorical features.
     normalization (bool): Flag indicating whether to perform numerical standardization or normalization.
-    oversampling_strategy (str): The oversampling strategy to handle class imbalance.
-        Can be one of 'smotenc', 'adasyn', 'randomoversampling', or 'None'.
 
     Returns:
     DataFrame, DataFrame, Series, Series: Preprocessed training and testing features,
@@ -581,10 +581,6 @@ def preprocess_pipeline(df, encoding, normalization, oversampling_strategy):
     X_train = preprocessing_vivek(X_train, encoding, normalization)
     X_train = preprocessing_drop(X_train, cols_to_drop_list)
 
-    # re-balance the training set only
-    X_train, y_train = imbalanced_dataset_treatment(X_train, y_train,
-                                                    oversampling_strategy)
-
     X_test = preprocessing_guan_yee(X_test, encoding, normalization)
     X_test = preprocessing_kevin(X_test, encoding, normalization)
     X_test = preprocessing_peizhi(X_test, encoding, normalization)
@@ -592,3 +588,84 @@ def preprocess_pipeline(df, encoding, normalization, oversampling_strategy):
     X_test = preprocessing_drop(X_test, cols_to_drop_list)
 
     return X_train, X_test, y_train, y_test
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+def get_scoring_function(metric):
+    """
+    Get the scoring function based on the provided metric.
+
+    Parameters:
+    metric: The evaluation metric to compute ('accuracy', 'precision', 'recall', 'f1-score', 'roc', 'pr_auc').
+
+    Returns:
+    The corresponding scoring function.
+    """
+    if metric == 'accuracy':
+        return accuracy_score
+    elif metric == 'precision':
+        return precision_score
+    elif metric == 'recall':
+        return recall_score
+    elif metric == 'f1-score':
+        return f1_score
+    elif metric == 'roc':
+        return roc_auc_score
+    elif metric == 'pr_auc':
+        return average_precision_score
+    else:
+        raise ValueError("Invalid metric. Choose from 'accuracy', 'precision', 'recall', 'f1-score', 'roc', 'pr_auc'.")
+
+
+def perform_stratified_k_fold(model, X, y, k, oversampling_strategy, metric):
+    """
+    Perform stratified cross-validation and return the scores.
+
+    Parameters:
+    model : object
+        The sklearn model that should be used.
+    X : array-like of shape (n_samples, n_features)
+        The feature matrix.
+    y : array-like of shape (n_samples,)
+        The target vector.
+    k : int, default=5
+        The number of folds for cross-validation.
+    oversampling_strategy : str
+        The strategy for oversampling.
+    metric : {'accuracy', 'precision', 'recall', 'f1-score', 'roc_auc', 'pr_auc'}
+        The evaluation metric to compute.
+
+    Returns:
+    float
+        The mean score from all folds of the cross-validation.
+    """
+    skf = StratifiedKFold(n_splits=k, random_state=42, shuffle=True)
+    scores = []
+
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        # Perform oversampling on the X_train and y_train dataframe
+        X_train1, y_train1 = imbalanced_dataset_treatment(X_train, y_train,
+                                                          oversampling_strategy)
+
+        # Fit the model to the X_train dataset
+        model.fit(X_train1, y_train1)
+
+        # Obtain the prediction for the
+        y_pred = model.predict(X_test)
+
+        # Compute the evaluation metric using the scoring function
+        score_function = get_scoring_function(metric)
+        if metric in ['f1-score', 'recall', 'precision']:
+            score = score_function(y_test, y_pred, pos_label = 'Y')
+        else:
+            score = score_function(y_test, y_pred)
+        scores.append(score)
+
+    cv_score = sum(scores) / len(scores)
+    return cv_score
