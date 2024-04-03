@@ -258,18 +258,18 @@ class IndividualModel:
             self.X_train, self.y_train, oversampling_strategy
             )
         # This is to train the model
-        self.model.fit(self.X_train_bal, self.y_train_bal)
+        self.model.fit(X_train_bal, y_train_bal)
 
     def predict(self):
         # This is to generate predictions using a trained model
         self.y_pred = self.model.predict(self.X_test)
 
-    def train_predict(self):
+    def train_predict(self, oversampling_strategy = 'SMOTENC'):
         # This is to train and predict in one go
-        self.train()
+        self.train(oversampling_strategy)
         self.predict()
 
-    def finetune(self, oversampling_strategy = 'SMOTENC', metric = "F1 Score", **kwargs):
+    def finetune(self, oversampling_strategy = 'SMOTENC', metric = "f1-score", **kwargs):
         '''
         This function finetunes an individual model using Optuna, and update the model accordingly
 
