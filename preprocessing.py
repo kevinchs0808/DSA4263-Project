@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 from imblearn.over_sampling import SMOTENC, RandomOverSampler, ADASYN
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 
 def one_hot_encode(df, column):

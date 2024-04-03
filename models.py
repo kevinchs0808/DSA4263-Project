@@ -1,12 +1,200 @@
-from sklearn.model_selection import cross_val_score
-import optuna
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score, confusion_matrix
+from imblearn.over_sampling import SMOTENC, RandomOverSampler, ADASYN
+
 import shap
+import optuna
 import matplotlib.pyplot as plt
 import seaborn as sns
 import lime
 
 import parameters
+
+################################################################################
+### Oversampling Helper Functions
+
+def perform_SMOTENC_oversampling(X, y):
+    """
+    Perform oversampling using SMOTENC.
+
+    Parameters:
+    X (DataFrame): The input features.
+    y (Series): The target variable.
+
+    Returns:
+    DataFrame, Series: The resampled features and target variable.
+    """
+    # Define the list of numerical columns
+    num_columns_list = [
+        'months_as_customer',
+        'age',
+        'policy_deductable',
+        'policy_annual_premium',
+        'umbrella_limit',
+        'capital-gains',
+        'capital-loss',
+        'incident_hour_of_the_day',
+        'total_claim_amount',
+        'injury_claim',
+        'property_claim',
+        'vehicle_claim'
+    ]
+
+    # Obtain the indices of categorical columns
+    cat_columns_indices = [i for i, col in enumerate(X.columns) if col not in num_columns_list]
+
+    # Initialize SMOTENC with categorical feature indices and sampling strategy
+    smtnc = SMOTENC(
+        categorical_features=cat_columns_indices,
+        sampling_strategy='not majority',
+        random_state=42
+    )
+
+    # Perform oversampling
+    X_balanced, y_balanced = smtnc.fit_resample(X, y)
+
+    return X_balanced, y_balanced
+
+def perform_random_oversampling(X, y):
+    """
+    Perform oversampling using RandomOverSampler.
+
+    Parameters:
+    X (DataFrame): The input features.
+    y (Series): The target variable.
+
+    Returns:
+    DataFrame, Series: The resampled features and target variable.
+    """
+    # sampling_strategy, increase minority count to match the majority count
+    ros = RandomOverSampler(sampling_strategy = 'not majority', random_state=42)
+    X_balanced, y_balanced = ros.fit_resample(X, y)
+    return X_balanced, y_balanced
+
+def perform_ADASYN(X, y):
+    """
+    Perform oversampling using ADASYN.
+
+    Parameters:
+    X (DataFrame): The input features.
+    y (Series): The target variable.
+
+    Returns:
+    DataFrame, Series: The resampled features and target variable.
+    """
+    # sampling_strategy, increase minority count to match the majority count
+    ada = ADASYN(sampling_strategy = 'not majority', random_state=42)
+    X_balanced, y_balanced = ada.fit_resample(X, y)
+    return X_balanced, y_balanced
+
+def imbalanced_dataset_treatment(X, y, oversampling_strategy):
+    """
+    Handle imbalanced dataset by applying the specified oversampling strategy.
+
+    Parameters:
+    X (DataFrame): The input features.
+    y (Series): The target variable.
+    oversampling_strategy (str): The oversampling strategy to use. Options are "SMOTENC", "RandomOverSampler", "ADASYN", or "None" (no oversampling).
+
+    Returns:
+    DataFrame, Series: The resampled features and target variable.
+
+    Raises:
+    ValueError: If an unknown oversampling strategy is passed.
+    """
+    if oversampling_strategy == "SMOTENC":
+        X_balanced, y_balanced = perform_SMOTENC_oversampling(X, y)
+    elif oversampling_strategy == "RandomOverSampler":
+        X_balanced, y_balanced = perform_random_oversampling(X, y)
+    elif oversampling_strategy == "ADASYN":
+        X_balanced, y_balanced = perform_ADASYN(X, y)
+    elif oversampling_strategy == "None":
+        return X, y
+    else:
+        raise ValueError(f"Unknown oversampling strategy: {oversampling_strategy}")
+
+    return X_balanced, y_balanced
+
+################################################################################
+### K Fold Cross Validation Helper Functions
+
+def get_scoring_function(metric):
+    """
+    Get the scoring function based on the provided metric.
+
+    Parameters:
+    metric: The evaluation metric to compute ('accuracy', 'precision', 'recall', 'f1-score', 'roc', 'pr_auc').
+
+    Returns:
+    The corresponding scoring function.
+    """
+    if metric == 'accuracy':
+        return accuracy_score
+    elif metric == 'precision':
+        return precision_score
+    elif metric == 'recall':
+        return recall_score
+    elif metric == 'f1-score':
+        return f1_score
+    elif metric == 'roc':
+        return roc_auc_score
+    elif metric == 'pr_auc':
+        return average_precision_score
+    else:
+        raise ValueError("Invalid metric. Choose from 'accuracy', 'precision', 'recall', 'f1-score', 'roc', 'pr_auc'.")
+
+
+def perform_stratified_k_fold(model, X, y, k, oversampling_strategy, metric):
+    """
+    Perform stratified cross-validation and return the scores.
+
+    Parameters:
+    model : object
+        The sklearn model that should be used.
+    X : array-like of shape (n_samples, n_features)
+        The feature matrix.
+    y : array-like of shape (n_samples,)
+        The target vector.
+    k : int, default=5
+        The number of folds for cross-validation.
+    oversampling_strategy : str
+        The strategy for oversampling.
+    metric : {'accuracy', 'precision', 'recall', 'f1-score', 'roc_auc', 'pr_auc'}
+        The evaluation metric to compute.
+
+    Returns:
+    float
+        The mean score from all folds of the cross-validation.
+    """
+    skf = StratifiedKFold(n_splits=k, random_state=42, shuffle=True)
+    scores = []
+
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        # Perform oversampling on the X_train and y_train dataframe
+        X_train1, y_train1 = imbalanced_dataset_treatment(X_train, y_train,
+                                                          oversampling_strategy)
+
+        # Fit the model to the X_train dataset
+        model.fit(X_train1, y_train1)
+
+        # Obtain the prediction for the
+        y_pred = model.predict(X_test)
+
+        # Compute the evaluation metric using the scoring function
+        score_function = get_scoring_function(metric)
+        if metric in ['f1-score', 'recall', 'precision']:
+            score = score_function(y_test, y_pred, pos_label = 'Y')
+        else:
+            score = score_function(y_test, y_pred)
+        scores.append(score)
+
+    cv_score = sum(scores) / len(scores)
+    return cv_score
+
+################################################################################
+### Modelling Classes
 
 def merge_dicts(*dicts):
     '''
@@ -33,10 +221,10 @@ class IndividualModel:
 
         model_func: function call to create the model, NOT THE MODEL ITSELF
         param_info: dictionary that contains information used to finetune the model
-        X_train: training data
-        X_test: testing data
-        y_train: training labels
-        y_test: testing labels
+        X_train: training data, this data is not balanced
+        X_test: testing data, this data is not balanced and will not be balanced.
+        y_train: training labels, this data is not balanced
+        y_test: testing labels, this data is not balanced and will not be balanced. 
         tuned_params: dictionary with the tuned hyperparameters for the model, if applicable. Else is empty
         other_params: dictionary with parameters that are not hyperparameters, such as random_state.
         '''
@@ -59,14 +247,18 @@ class IndividualModel:
         self.X_test = X_test
         self.y_test = y_test
 
-    def train(self, oversample_method = 'SMOTENC'):
+    def train(self, oversampling_strategy = 'SMOTENC'):
         '''
         This method trains model by doing the following:
         1. Oversample the training data with the specified method
         2. Fit the model with the oversampled data
         '''
+
+        X_train_bal, y_train_bal = imbalanced_dataset_treatment(
+            self.X_train, self.y_train, oversampling_strategy
+            )
         # This is to train the model
-        self.model.fit(self.X_train, self.y_train)
+        self.model.fit(self.X_train_bal, self.y_train_bal)
 
     def predict(self):
         # This is to generate predictions using a trained model
@@ -77,7 +269,7 @@ class IndividualModel:
         self.train()
         self.predict()
 
-    def finetune(self, oversample_method = 'SMOTENC', metric = "F1 Score", **kwargs):
+    def finetune(self, oversampling_strategy = 'SMOTENC', metric = "F1 Score", **kwargs):
         '''
         This function finetunes an individual model using Optuna, and update the model accordingly
 
@@ -92,7 +284,7 @@ class IndividualModel:
 
         def objective(trial):
 
-            testing_hyperparameters = {}
+            testing_params = {}
 
             param_candidates = self.param_info['potential_hyperparameters']
             
@@ -101,13 +293,13 @@ class IndividualModel:
 
                 if requirement['finetune'] == True:
                     if requirement['trial'] == 'categorical':
-                        testing_hyperparameters[param] = trial.suggest_categorical(
+                        testing_params[param] = trial.suggest_categorical(
                             name=param, 
                             choices=requirement['choices']
                         )
 
                     elif requirement['trial'] == 'int':
-                        testing_hyperparameters[param] = trial.suggest_int(
+                        testing_params[param] = trial.suggest_int(
                             name=param, 
                             low=requirement['low_value'], 
                             high=requirement['high_value'], 
@@ -115,7 +307,7 @@ class IndividualModel:
                             step=requirement['finetuning_step']
                         )
                     elif requirement['trial'] == 'float':
-                        testing_hyperparameters[param] = trial.suggest_float(
+                        testing_params[param] = trial.suggest_float(
                             name=param, 
                             low=requirement['low_value'], 
                             high=requirement['high_value'], 
@@ -123,14 +315,16 @@ class IndividualModel:
                             step=requirement['finetuning_step']
                         )
                 else:
-                    testing_hyperparameters[param] = requirement['exact_value']
+                    testing_params[param] = requirement['exact_value']
         
-            model = self.model_func(**testing_hyperparameters)
-            score = cross_val_score(
-                estimator=model, X=self.X_train, y=self.y_train, 
-                cv=self.param_info['tuning_options']['cv_number'],
-                ).mean()
-            return score
+            model = self.model_func(**testing_params)
+            
+            cv_score = perform_stratified_k_fold(
+                model, self.X_train, self.y_train, 
+                self.param_info['tuning_options']['cv_number'], 
+                oversampling_strategy, metric
+                )
+            return cv_score
         
         tuning_options = self.param_info['tuning_options']
         
