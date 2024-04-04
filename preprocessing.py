@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 from imblearn.over_sampling import SMOTENC, RandomOverSampler, ADASYN
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
+from sklearn.model_selection import train_test_split
 
 def one_hot_encode(df, column):
     """
@@ -292,6 +291,7 @@ def create_auto_region_column(df):
 
     country_map = {
         'Acura': 'Japan',
+        'Accura': 'Japan', #Typo
         'Audi': 'Germany',
         'BMW': 'Germany',
         'Chevrolet': 'US',
@@ -304,7 +304,8 @@ def create_auto_region_column(df):
         'Saab': 'Sweden',
         'Suburu': 'Japan', #Typo
         'Toyota': 'Japan',
-        'Volkswagen': 'Germany' #Typo
+        'Volkswagen': 'Germany', #Typo
+        '?': "?"
     }
 
     # Add a new column 'auto_region' based on the mapping
@@ -431,114 +432,6 @@ def preprocessing_drop(df, cols_to_drop_list):
     df_processed = df_processed.drop(cols_to_drop_list, axis = 1)
     return df_processed
 
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
-
-def perform_SMOTENC_oversampling(X, y):
-    """
-    Perform oversampling using SMOTENC.
-
-    Parameters:
-    X (DataFrame): The input features.
-    y (Series): The target variable.
-
-    Returns:
-    DataFrame, Series: The resampled features and target variable.
-    """
-    # Define the list of numerical columns
-    num_columns_list = [
-        'months_as_customer',
-        'age',
-        'policy_deductable',
-        'policy_annual_premium',
-        'umbrella_limit',
-        'capital-gains',
-        'capital-loss',
-        'incident_hour_of_the_day',
-        'total_claim_amount',
-        'injury_claim',
-        'property_claim',
-        'vehicle_claim'
-    ]
-
-    # Obtain the indices of categorical columns
-    cat_columns_indices = [i for i, col in enumerate(X.columns) if col not in num_columns_list]
-
-    # Initialize SMOTENC with categorical feature indices and sampling strategy
-    smtnc = SMOTENC(
-        categorical_features=cat_columns_indices,
-        sampling_strategy='not majority',
-        random_state=42
-    )
-
-    # Perform oversampling
-    X_balanced, y_balanced = smtnc.fit_resample(X, y)
-
-    return X_balanced, y_balanced
-
-def perform_random_oversampling(X, y):
-    """
-    Perform oversampling using RandomOverSampler.
-
-    Parameters:
-    X (DataFrame): The input features.
-    y (Series): The target variable.
-
-    Returns:
-    DataFrame, Series: The resampled features and target variable.
-    """
-    # sampling_strategy, increase minority count to match the majority count
-    ros = RandomOverSampler(sampling_strategy = 'not majority', random_state=42)
-    X_balanced, y_balanced = ros.fit_resample(X, y)
-    return X_balanced, y_balanced
-
-def perform_ADASYN(X, y):
-    """
-    Perform oversampling using ADASYN.
-
-    Parameters:
-    X (DataFrame): The input features.
-    y (Series): The target variable.
-
-    Returns:
-    DataFrame, Series: The resampled features and target variable.
-    """
-    # sampling_strategy, increase minority count to match the majority count
-    ada = ADASYN(sampling_strategy = 'not majority', random_state=42)
-    X_balanced, y_balanced = ada.fit_resample(X, y)
-    return X_balanced, y_balanced
-
-def imbalanced_dataset_treatment(X, y, oversampling_strategy):
-    """
-    Handle imbalanced dataset by applying the specified oversampling strategy.
-
-    Parameters:
-    X (DataFrame): The input features.
-    y (Series): The target variable.
-    oversampling_strategy (str): The oversampling strategy to use. Options are "SMOTENC", "RandomOverSampler", "ADASYN", or "None" (no oversampling).
-
-    Returns:
-    DataFrame, Series: The resampled features and target variable.
-
-    Raises:
-    ValueError: If an unknown oversampling strategy is passed.
-    """
-    if oversampling_strategy == "SMOTENC":
-        X_balanced, y_balanced = perform_SMOTENC_oversampling(X, y)
-    elif oversampling_strategy == "RandomOverSampler":
-        X_balanced, y_balanced = perform_random_oversampling(X, y)
-    elif oversampling_strategy == "ADASYN":
-        X_balanced, y_balanced = perform_ADASYN(X, y)
-    elif oversampling_strategy == "None":
-        return X, y
-    else:
-        raise ValueError(f"Unknown oversampling strategy: {oversampling_strategy}")
-
-    return X_balanced, y_balanced
-
 ################################################################################
 ################################################################################
 ################################################################################
@@ -587,84 +480,3 @@ def preprocess_pipeline(df, encoding, normalization):
     X_test = preprocessing_drop(X_test, cols_to_drop_list)
 
     return X_train, X_test, y_train, y_test
-
-################################################################################
-################################################################################
-################################################################################
-################################################################################
-################################################################################
-
-def get_scoring_function(metric):
-    """
-    Get the scoring function based on the provided metric.
-
-    Parameters:
-    metric: The evaluation metric to compute ('accuracy', 'precision', 'recall', 'f1-score', 'roc', 'pr_auc').
-
-    Returns:
-    The corresponding scoring function.
-    """
-    if metric == 'accuracy':
-        return accuracy_score
-    elif metric == 'precision':
-        return precision_score
-    elif metric == 'recall':
-        return recall_score
-    elif metric == 'f1-score':
-        return f1_score
-    elif metric == 'roc':
-        return roc_auc_score
-    elif metric == 'pr_auc':
-        return average_precision_score
-    else:
-        raise ValueError("Invalid metric. Choose from 'accuracy', 'precision', 'recall', 'f1-score', 'roc', 'pr_auc'.")
-
-
-def perform_stratified_k_fold(model, X, y, k, oversampling_strategy, metric):
-    """
-    Perform stratified cross-validation and return the scores.
-
-    Parameters:
-    model : object
-        The sklearn model that should be used.
-    X : array-like of shape (n_samples, n_features)
-        The feature matrix.
-    y : array-like of shape (n_samples,)
-        The target vector.
-    k : int, default=5
-        The number of folds for cross-validation.
-    oversampling_strategy : str
-        The strategy for oversampling.
-    metric : {'accuracy', 'precision', 'recall', 'f1-score', 'roc_auc', 'pr_auc'}
-        The evaluation metric to compute.
-
-    Returns:
-    float
-        The mean score from all folds of the cross-validation.
-    """
-    skf = StratifiedKFold(n_splits=k, random_state=42, shuffle=True)
-    scores = []
-
-    for train_index, test_index in skf.split(X, y):
-        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
-        # Perform oversampling on the X_train and y_train dataframe
-        X_train1, y_train1 = imbalanced_dataset_treatment(X_train, y_train,
-                                                          oversampling_strategy)
-
-        # Fit the model to the X_train dataset
-        model.fit(X_train1, y_train1)
-
-        # Obtain the prediction for the
-        y_pred = model.predict(X_test)
-
-        # Compute the evaluation metric using the scoring function
-        score_function = get_scoring_function(metric)
-        if metric in ['f1-score', 'recall', 'precision']:
-            score = score_function(y_test, y_pred, pos_label = 'Y')
-        else:
-            score = score_function(y_test, y_pred)
-        scores.append(score)
-
-    cv_score = sum(scores) / len(scores)
-    return cv_score

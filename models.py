@@ -1,4 +1,4 @@
-from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score, confusion_matrix
 from imblearn.over_sampling import SMOTENC, RandomOverSampler, ADASYN
 
@@ -79,7 +79,7 @@ def perform_ADASYN(X, y):
     X (DataFrame): The input features.
     y (Series): The target variable.
 
-    Returns:
+    Returns:pos_label=Y
     DataFrame, Series: The resampled features and target variable.
     """
     # sampling_strategy, increase minority count to match the majority count
@@ -173,11 +173,11 @@ def perform_stratified_k_fold(model, X, y, k, oversampling_strategy, metric):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
         # Perform oversampling on the X_train and y_train dataframe
-        X_train1, y_train1 = imbalanced_dataset_treatment(X_train, y_train,
+        X_train_bal, y_train_bal = imbalanced_dataset_treatment(X_train, y_train,
                                                           oversampling_strategy)
 
         # Fit the model to the X_train dataset
-        model.fit(X_train1, y_train1)
+        model.fit(X_train_bal, y_train_bal)
 
         # Obtain the prediction for the
         y_pred = model.predict(X_test)
@@ -185,7 +185,7 @@ def perform_stratified_k_fold(model, X, y, k, oversampling_strategy, metric):
         # Compute the evaluation metric using the scoring function
         score_function = get_scoring_function(metric)
         if metric in ['f1-score', 'recall', 'precision']:
-            score = score_function(y_test, y_pred, pos_label = 'Y')
+            score = score_function(y_test, y_pred, pos_label=1)
         else:
             score = score_function(y_test, y_pred)
         scores.append(score)
@@ -198,7 +198,7 @@ def perform_stratified_k_fold(model, X, y, k, oversampling_strategy, metric):
 
 def merge_dicts(*dicts):
     '''
-    This function merges dictionaries together.
+    This helper function merges dictionaries together.
     '''
     return {k: v for d in dicts for k, v in d.items()}
 
@@ -377,7 +377,7 @@ class IndividualModel:
 
         return fig
 
-    def shap_explanation(self, chosen_index):
+    def shap_explanation(self):
         shap.initjs()
 
         # Create the explainer
@@ -404,39 +404,40 @@ class IndividualModel:
 
         return exp.show_in_notebook(show_all=True)
     
-class ModellingPipeline:
 
-    def __init__(self, models, X_train, X_test, y_train, y_test):
+# class ModellingPipeline:
 
-        self.models = {}
+#     def __init__(self, models, X_train, X_test, y_train, y_test):
 
-        for model in models:
+#         self.models = {}
 
-            self.models[model['model_name']] = IndividualModel(model, X_train, X_test, y_train, y_test)
+#         for model in models:
 
-    def tune_all_models(self):
+#             self.models[model['model_name']] = IndividualModel(model, X_train, X_test, y_train, y_test)
 
-        for model_name in self.models.keys():
+#     def tune_all_models(self):
 
-            validation_score, chosen_hyperparameters = self.models[model_name].finetune()
-            self.models[model_name].train()
-            self.models[model_name].predict()
-            performance_score = self.models[model_name].evaluate()
+#         for model_name in self.models.keys():
 
-            print(f"{model_name} finished")
-            print(f"Validation Score: {validation_score} across {self.models[model_name].information['cv_number']} iterations of cross-validation")
-            print(f"Chosen Hyperparameters: {chosen_hyperparameters}")
-            print(f"Performance Score: {performance_score}")
+#             validation_score, chosen_hyperparameters = self.models[model_name].finetune()
+#             self.models[model_name].train()
+#             self.models[model_name].predict()
+#             performance_score = self.models[model_name].evaluate()
+
+#             print(f"{model_name} finished")
+#             print(f"Validation Score: {validation_score} across {self.models[model_name].information['cv_number']} iterations of cross-validation")
+#             print(f"Chosen Hyperparameters: {chosen_hyperparameters}")
+#             print(f"Performance Score: {performance_score}")
     
-    def check_performance(self, model_name):
-        return self.models[model_name].performance_score
+#     def check_performance(self, model_name):
+#         return self.models[model_name].performance_score
     
-    def plot_confusion_matrix(self, model_name, save_path = None):
-        self.models[model_name].plot_confusion_matrix(save_path=save_path)
+#     def plot_confusion_matrix(self, model_name, save_path = None):
+#         self.models[model_name].plot_confusion_matrix(save_path=save_path)
     
-    def shap_explanation(self, model_name, chosen_index):
-        self.models[model_name].shap_explanation(chosen_index)
+#     def shap_explanation(self, model_name, chosen_index):
+#         self.models[model_name].shap_explanation(chosen_index)
     
-    def lime_explanation(self, model_name, chosen_index, num_features):
-        self.models[model_name].lime_explanation(chosen_index, num_features)
+#     def lime_explanation(self, model_name, chosen_index, num_features):
+#         self.models[model_name].lime_explanation(chosen_index, num_features)
 
