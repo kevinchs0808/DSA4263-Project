@@ -377,15 +377,22 @@ class IndividualModel:
 
         return fig
 
-    def shap_explanation(self):
+    def shap_explanation(self, is_random_forest=False, class_to_observe=0):
         shap.initjs()
 
         # Create the explainer
         explainer = shap.Explainer(self.model)
 
-        shap_values = explainer.shap_values(self.X_test)
+        #shap_values = explainer.shap_values(self.X_test)
 
-        return shap.summary_plot(shap_values, self.X_test)
+        #return shap.summary_plot(shap_values, self.X_test)
+
+        shap_values = explainer(self.X_test)
+
+        if is_random_forest:
+            return shap.plots.beeswarm(shap_values[:,:,class_to_observe])
+        else:
+            return shap.plots.beeswarm(shap_values)
     
     def lime_explanation(self, chosen_index, num_features):
 
