@@ -377,7 +377,7 @@ class IndividualModel:
 
         return fig
 
-    def shap_explanation(self, is_random_forest=False, class_to_observe=0):
+    def shap_explanation(self, is_tree=False, class_to_observe=0):
         shap.initjs()
 
         # Create the explainer
@@ -389,7 +389,7 @@ class IndividualModel:
 
         shap_values = explainer(self.X_test)
 
-        if is_random_forest:
+        if is_tree:
             return shap.plots.beeswarm(shap_values[:,:,class_to_observe])
         else:
             return shap.plots.beeswarm(shap_values)

@@ -44,6 +44,44 @@ RANDOM_FOREST_INFORMATION = {
     }
 }
 
+DECISION_TREE_INFORMATION = {
+    'model_name': 'Decision Tree',
+    'potential_hyperparameters': {
+        'max_depth': {
+            'finetune': True,
+            'low_value': 5,
+            'high_value': 10,
+            'exact_value': 8,
+            'trial': 'int',
+            'use_log': True,
+            'finetuning_step': 1
+        },
+        'min_samples_split': {
+            'finetune': True,
+            'low_value': 2,
+            'high_value': 10,
+            'exact_value': 2,
+            'trial': 'int',
+            'use_log': True,
+            'finetuning_step': 1
+        },
+        'min_samples_leaf': {
+            'finetune': True,
+            'low_value': 1,
+            'high_value': 5,
+            'exact_value': 1,
+            'trial': 'int',
+            'use_log': True,
+            'finetuning_step': 1
+        },
+    },
+    'tuning_options': {
+        'cv_number': 3,
+        'optuna_direction': "maximize",
+        "n_trials": 100
+    }
+}
+
 XGB_INFORMATION = {
     'model_name': 'XGBoost',
     'potential_hyperparameters': {
