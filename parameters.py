@@ -14,18 +14,18 @@ RANDOM_FOREST_INFORMATION = {
     'potential_hyperparameters': {
         'n_estimators': {
             'finetune': True,
-            'low_value': 10,
-            'high_value': 30,
-            'exact_value': 20,
+            'low_value': 1,
+            'high_value': 100,
+            'exact_value': 5,
             'trial': 'int',
             'use_log': True,
             'finetuning_step': 1
         },
         'max_depth': {
             'finetune': True,
-            'low_value': 5,
+            'low_value': 1,
             'high_value': 10,
-            'exact_value': 8,
+            'exact_value': 2,
             'trial': 'int',
             'use_log': True,
             'finetuning_step': 1
@@ -35,6 +35,13 @@ RANDOM_FOREST_INFORMATION = {
             'choices': ['gini', 'entropy', 'log_loss'],
             'exact_value': 'gini',
             'trial': 'categorical'
+        },
+        'random_state': {
+            'finetune': False,
+            'low_value': 1,
+            'high_value': 100,
+            'exact_value': 42,
+            'trial': 'int'
         }
     },
     'tuning_options': {
@@ -49,9 +56,9 @@ DECISION_TREE_INFORMATION = {
     'potential_hyperparameters': {
         'max_depth': {
             'finetune': True,
-            'low_value': 5,
+            'low_value': 1,
             'high_value': 10,
-            'exact_value': 8,
+            'exact_value': 2,
             'trial': 'int',
             'use_log': True,
             'finetuning_step': 1
@@ -74,6 +81,13 @@ DECISION_TREE_INFORMATION = {
             'use_log': True,
             'finetuning_step': 1
         },
+        'random_state': {
+            'finetune': False,
+            'low_value': 1,
+            'high_value': 100,
+            'exact_value': 42,
+            'trial': 'int'
+        }
     },
     'tuning_options': {
         'cv_number': 3,
