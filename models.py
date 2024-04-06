@@ -233,6 +233,9 @@ class IndividualModel:
 
         # initialise a model
         all_params = merge_dicts(tuned_params, static_params)
+        
+        # Add random_state parameter
+        all_params['random_state'] = 42
         self.model = model_func(**all_params)
 
         self.tuned_params = tuned_params
@@ -378,10 +381,10 @@ class IndividualModel:
         return fig
 
     def shap_explanation(self, is_tree=False, class_to_observe=0):
-        shap.initjs()
+        #shap.initjs()
 
         # Create the explainer
-        explainer = shap.Explainer(self.model)
+        explainer = shap.Explainer(self.model, self.X_test)
 
         #shap_values = explainer.shap_values(self.X_test)
 

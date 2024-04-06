@@ -183,4 +183,66 @@ XGB_INFORMATION = {
     }
 }
 
+MLP_INFORMATION = {
+    'model_name': 'Multilayer Perceptron',
+    'potential_hyperparameters': {
+        'hidden_layer_sizes': {
+            'finetune': True,
+            'low_value': 50,
+            'high_value': 200, #100 is default #128 + 1 = 129/2 = 64.5 ish
+            'exact_value': None,
+            'trial': 'int',
+            'use_log': False,
+            'finetuning_step': 10
+        },
+        'activation': {
+            'finetune': False,  # Set to False since we are not fine-tuning this parameter
+            'exact_value': 'relu',  # Specify 'relu' as the exact value
+        },
+        'solver': {
+            'finetune': False,
+            'trial': 'categorical',  # Set to categorical for solver
+            'choices': ['adam', 'lbfgs'],
+            'exact_value': 'adam'
+        },
+        'alpha': {
+            'finetune': True,
+            'low_value': 0.0001,
+            'high_value': 0.01,
+            'exact_value': None,
+            'trial': 'float',
+            'use_log': False,
+            'finetuning_step': 0.0001
+        },
+        'learning_rate_init': {
+            'finetune': True,
+            'low_value': 0.0001,
+            'high_value': 0.01,
+            'exact_value': None,
+            'trial': 'float',
+            'use_log': False,
+            'finetuning_step': 0.0001
+        },
+        'max_iter': {
+            'finetune': True,
+            'low_value': 200,
+            'high_value': 700,
+            'exact_value': 200,
+            'trial': 'int',
+            'use_log': False,
+            'finetuning_step': 100
+        },
+        'random_state': {
+            'finetune': False,  # Set to False since we are not fine-tuning this parameter
+            'exact_value': 42,  # Specify '42' as the exact value
+        },
+    },
+    'tuning_options': {
+        'cv_number': 5,
+        'optuna_direction': "maximize",
+        "n_trials": 100
+    }
+}
+
+
 LIME_KERNEL_WIDTH = 5
