@@ -14,12 +14,12 @@ RANDOM_FOREST_INFORMATION = {
     'potential_hyperparameters': {
         'n_estimators': {
             'finetune': True,
-            'low_value': 1,
-            'high_value': 100,
+            'low_value': 100,
+            'high_value': 500,
             'exact_value': 5,
             'trial': 'int',
-            'use_log': True,
-            'finetuning_step': 1
+            'use_log': False,
+            'finetuning_step': 100
         },
         'max_depth': {
             'finetune': True,
