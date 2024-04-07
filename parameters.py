@@ -129,10 +129,6 @@ DECISION_TREE_INFORMATION = {
 XGB_INFORMATION = {
     'model_name': 'XGBoost',
     'potential_hyperparameters': {
-        "enable_categorical": {
-            "finetune": False,
-            "exact_value": True,
-        },
         'n_estimators': {
             'finetune': True,
             'low_value': 10,
@@ -204,8 +200,13 @@ XGB_INFORMATION = {
             'trial': 'float',
             'use_log': False,
             'finetuning_step': 0.1
-        }
+        },
+        'random_state': {
+            'finetune': False,  # Set to False since we are not fine-tuning this parameter
+            'exact_value': 42,  # Specify '42' as the exact value
+    }
     },
+
     'tuning_options': {
         'cv_number': 5,
         'optuna_direction': "maximize",
