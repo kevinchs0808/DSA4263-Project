@@ -302,24 +302,42 @@ class IndividualModel:
                         )
 
                     elif requirement['trial'] == 'int':
-                        testing_params[param] = trial.suggest_int(
-                            name=param, 
-                            low=requirement['low_value'], 
-                            high=requirement['high_value'], 
-                            log=requirement['use_log'],
-                            step=requirement['finetuning_step']
-                        )
+                        if requirement['use_log']:
+                            testing_params[param] = trial.suggest_int(
+                                name=param, 
+                                low=requirement['low_value'], 
+                                high=requirement['high_value'], 
+                                log=requirement['use_log'],
+                                step = 1 # if want use log, step = 1 for int as an additional safeguard
+                            )
+                        else:
+                            testing_params[param] = trial.suggest_int(
+                                name=param, 
+                                low=requirement['low_value'], 
+                                high=requirement['high_value'], 
+                                step=requirement['finetuning_step']
+                            )
                     elif requirement['trial'] == 'float':
-                        testing_params[param] = trial.suggest_float(
-                            name=param, 
-                            low=requirement['low_value'], 
-                            high=requirement['high_value'], 
-                            log=requirement['use_log'],
-                            step=requirement['finetuning_step']
-                        )
+                        if requirement['use_log']:
+                            testing_params[param] = trial.suggest_float(
+                                name=param, 
+                                low=requirement['low_value'], 
+                                high=requirement['high_value'], 
+                                log=requirement['use_log'],
+                                step = None  # if want use log, step = None for float # additional safeguard
+                            )
+                        else:
+                            testing_params[param] = trial.suggest_float(
+                                name=param, 
+                                low=requirement['low_value'], 
+                                high=requirement['high_value'], 
+                                step=requirement['finetuning_step']
+                            )
                 else:
                     testing_params[param] = requirement['exact_value']
-        
+            
+            # This line is useful for xgboost with enable_categorical features
+            testing_params = merge_dicts(testing_params, self.static_params)
             model = self.model_func(**testing_params)
             
             cv_score = perform_stratified_k_fold(
@@ -380,22 +398,15 @@ class IndividualModel:
 
         return fig
 
-    def shap_explanation(self, is_tree=False, class_to_observe=0):
+    def shap_explanation(self):
         #shap.initjs()
 
         # Create the explainer
-        explainer = shap.Explainer(self.model, self.X_test)
-
-        #shap_values = explainer.shap_values(self.X_test)
-
-        #return shap.summary_plot(shap_values, self.X_test)
+        explainer = shap.Explainer(self.model.predict, self.X_test)
 
         shap_values = explainer(self.X_test)
-
-        if is_tree:
-            return shap.plots.beeswarm(shap_values[:,:,class_to_observe])
-        else:
-            return shap.plots.beeswarm(shap_values)
+            
+        return shap.plots.beeswarm(shap_values)
     
     def lime_explanation(self, chosen_index, num_features):
 

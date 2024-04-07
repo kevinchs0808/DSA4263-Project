@@ -14,12 +14,12 @@ RANDOM_FOREST_INFORMATION = {
     'potential_hyperparameters': {
         'n_estimators': {
             'finetune': True,
-            'low_value': 100,
+            'low_value': 100, 
             'high_value': 500,
-            'exact_value': 5,
+            'exact_value': 100, # sk learn default is 100 for random forest
             'trial': 'int',
             'use_log': False,
-            'finetuning_step': 100
+            'finetuning_step': 50
         },
         'max_depth': {
             'finetune': True,
@@ -33,7 +33,37 @@ RANDOM_FOREST_INFORMATION = {
         'criterion': {
             'finetune': True,
             'choices': ['gini', 'entropy', 'log_loss'],
-            'exact_value': 'gini',
+            'exact_value': 'gini', # default is gini
+            'trial': 'categorical'
+        },
+        'min_samples_split': { # minimum samples to split a leaf node
+            'finetune': True,
+            'low_value': 2,
+            'high_value': 10,
+            'exact_value': 2, # default is 2
+            'trial': 'int',
+            'use_log': False,
+            'finetuning_step': 1
+        },
+        'min_samples_leaf': { # minimum samples in leaf node
+            'finetune': True,
+            'low_value': 1,
+            'high_value': 10,
+            'exact_value': 1, # default is 1
+            'trial': 'int',
+            'use_log': False,
+            'finetuning_step': 1
+        },
+        'max_features': { # Number of features to conisder while looking for best split
+            'finetune': True,                  # Whether to fine-tune this parameter
+            'choices': ['sqrt', 'log2', None], # Available choices for the parameter
+            'exact_value': 'sqrt',             # Default or exact value for the parameter
+            'trial': 'categorical'             # Type of tuning trial (e.g., 'categorical')
+        },
+        'bootstrap': { # bootstrap samples were used to build the tree
+            'finetune': True,
+            'choices': [True, False],
+            'exact_value': True, # Default is True
             'trial': 'categorical'
         },
         'random_state': {
@@ -212,7 +242,7 @@ MLP_INFORMATION = {
             'exact_value': None,
             'trial': 'float',
             'use_log': False,
-            'finetuning_step': 0.0001
+            'finetuning_step': None
         },
         'learning_rate_init': {
             'finetune': True,
@@ -221,7 +251,7 @@ MLP_INFORMATION = {
             'exact_value': None,
             'trial': 'float',
             'use_log': False,
-            'finetuning_step': 0.0001
+            'finetuning_step': None
         },
         'max_iter': {
             'finetune': True,
@@ -230,7 +260,7 @@ MLP_INFORMATION = {
             'exact_value': 200,
             'trial': 'int',
             'use_log': False,
-            'finetuning_step': 100
+            'finetuning_step': 50
         },
         'random_state': {
             'finetune': False,  # Set to False since we are not fine-tuning this parameter
@@ -244,5 +274,96 @@ MLP_INFORMATION = {
     }
 }
 
+LGBM_INFORMATION = {
+    'model_name': 'LightGBM',
+    'potential_hyperparameters': {
+        'n_estimators': {
+            'finetune': True,
+            'low_value': 100,
+            'high_value': 500,
+            'exact_value': 100, #default is 100
+            'trial': 'int',
+            'use_log': False,
+            'finetuning_step': 50
+        },
+        'num_leaves': {
+            'finetune': True,
+            'low_value': 2,
+            'high_value': 2**8, 
+            'exact_value': 31, # default is 31
+            'trial': 'int',
+            'use_log': True,
+            'finetuning_step': 1
+        },
+        'learning_rate': {
+            'finetune': True,
+            'low_value': 0.001,
+            'high_value': 0.2,
+            'exact_value': 0.1, # Default is 1
+            'trial': 'float',
+            'use_log': False,
+            'finetuning_step': None
+        },
+        'subsample': {
+            'finetune': True,
+            'low_value': 0.2,
+            'high_value': 1.0,
+            'exact_value': 1.0, # Default is 1
+            'trial': 'float',
+            'use_log': False,
+            'finetuning_step': 0.05
+        },
+        'colsample_bytree': {
+            'finetune': True,
+            'low_value': 0.05,
+            'high_value': 1.0,
+            'exact_value': 1.0, # Default is 1
+            'trial': 'float',
+            'use_log': False,
+            'finetuning_step': 0.05
+        },
+        'min_child_samples': { # Minimum amount of data in a child
+            'finetune': True,
+            'low_value': 1,
+            'high_value': 30,
+            'exact_value': 20, # Default is 20
+            'trial': 'int',
+            'use_log': False,
+            'finetuning_step': 1
+        },
+        'reg_alpha': { # L1 regularisation parameter
+            'finetune': True,
+            'low_value': 1e-8,
+            'high_value': 10,
+            'exact_value': 1e-8, # Default is 0
+            'trial': 'float',
+            'use_log': True,
+            'finetuning_step': None
+        },
+        'reg_lambda': { # L2 regularisation parameter
+            'finetune': True,
+            'low_value': 1e-8,
+            'high_value': 10,
+            'exact_value': 1e-8, # Default is 0
+            'trial': 'float',
+            'use_log': True,
+            'finetuning_step': None
+        },
+        'random_state': {
+            'finetune': False,  # Set to False since we are not fine-tuning this parameter
+            'exact_value': 42,  # Specify '42' as the exact value
+        },
+        'verbose':{
+            'finetune': False,  # Set to False since we are not fine-tuning this parameter
+            'exact_value': -1,  # -1 to have no verbose
+        }
+
+    },
+    'tuning_options': {
+        'cv_number': 5,
+        'optuna_direction': "maximize",
+        "n_trials": 100
+    }
+}
 
 LIME_KERNEL_WIDTH = 5
