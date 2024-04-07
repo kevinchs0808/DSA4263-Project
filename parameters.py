@@ -367,4 +367,88 @@ LGBM_INFORMATION = {
     }
 }
 
+LOGISTIC_REGRESSION_INFORMATION = {
+    'model_name': 'Logistic Regression',
+    'potential_hyperparameters': {
+        'penalty': {
+            'finetune': True,
+            'choices': ['l2', 'none'],
+            'exact_value': 'l2',
+            'trial': 'categorical'
+        },
+        'C': {
+            'finetune': True,
+            'low_value': 0.01,
+            'high_value': 10.0,
+            'exact_value': 1.0,
+            'trial': 'float',
+            'use_log': False,
+            'finetuning_step': 0.1
+        },
+        'solver': {
+            'finetune': True,
+            'choices': ['newton-cg', 'lbfgs', 'sag', 'saga'],
+            'exact_value': 'lbfgs',
+            'trial': 'categorical'
+        },
+        'random_state': {
+            'finetune': False,
+            'exact_value': 42
+        }
+    },
+    'tuning_options': {
+        'cv_number': 3,
+        'optuna_direction': "maximize",
+        'n_trials': 100
+    }
+}
+
+SVM_INFORMATION = {
+  'model_name': 'SVM',
+  'potential_hyperparameters': {
+    'C': {
+      'finetune': True,
+      'low_value': 0.01,
+      'high_value': 100.0,
+      'exact_value': 1.0,
+      'trial': 'float',
+      'use_log': True,
+      'finetuning_step': None
+    },
+    'kernel': {
+      'finetune': True,
+      'choices': ['linear', 'poly', 'rbf', 'sigmoid'],
+      'exact_value': 'rbf',
+      'trial': 'categorical'
+    },
+    'degree': {
+      'finetune': True,  # Only applicable for poly kernel
+      'low_value': 2,
+      'high_value': 5,
+      'exact_value': 3,
+      'trial': 'int',
+      'use_log': False,
+      'finetuning_step': 1
+    },
+    'coef0': {
+      'finetune': True,  # Only applicable for poly and sigmoid kernel
+      'low_value': 0.1,
+      'high_value': 1.0,
+      'exact_value': 0.1,
+      'trial': 'float',
+      'use_log': True,
+      'finetuning_step': None
+    },
+    'random_state': {
+      'finetune': False,
+      'exact_value': 42
+    }
+  },
+  'tuning_options': {
+    'cv_number': 3,
+    'optuna_direction': "maximize",
+    'n_trials': 100
+  }
+}
+
 LIME_KERNEL_WIDTH = 5
