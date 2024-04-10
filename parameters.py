@@ -372,13 +372,13 @@ LOGISTIC_REGRESSION_INFORMATION = {
     'potential_hyperparameters': {
         'penalty': {
             'finetune': True,
-            'choices': ['l2', 'none'],
+            'choices': ['l2', None],
             'exact_value': 'l2',
             'trial': 'categorical'
         },
         'C': {
             'finetune': True,
-            'low_value': 0.01,
+            'low_value': 0.1,
             'high_value': 10.0,
             'exact_value': 1.0,
             'trial': 'float',
