@@ -75,7 +75,7 @@ RANDOM_FOREST_INFORMATION = {
         }
     },
     'tuning_options': {
-        'cv_number': 3,
+        'cv_number': 5,
         'optuna_direction': "maximize",
         "n_trials": 100
     }
