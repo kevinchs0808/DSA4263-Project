@@ -234,12 +234,19 @@ class IndividualModel:
         # initialise a model
         all_params = merge_dicts(tuned_params, static_params)
         
-        # Add random_state parameter
+        # Add random_state parameter, if not already present
         all_params['random_state'] = 42
-        self.model = model_func(**all_params)
+
+
+        # Create a baseline, untuned model based on static_params only
+        # There won't be a tuned model created upon initialization
+        self.baseline_model = model_func(**static_params)
 
         self.tuned_params = tuned_params
         self.static_params = static_params
+
+        if tuned_params != {}:
+            self.tuned_model = model_func(**all_params)
 
         # param_info is a dictionary that contains the potential hyperparameters, cross-validation number, Optuna direction, and number of trials
         # they are used to finetune the model
@@ -250,27 +257,76 @@ class IndividualModel:
         self.X_test = X_test
         self.y_test = y_test
 
-    def train(self, oversampling_strategy = 'SMOTENC'):
+    def train(self, oversampling_strategy = 'SMOTENC', baseline=False):
         '''
         This method trains model by doing the following:
         1. Oversample the training data with the specified method
         2. Fit the model with the oversampled data
+
+        parameters:
+        oversampling_strategy: method to oversample the data. Default is SMOTENC
+        baseline: whether to train using baseline (untued) model or a tuned one. Default is False
         '''
 
         X_train_bal, y_train_bal = imbalanced_dataset_treatment(
             self.X_train, self.y_train, oversampling_strategy
             )
-        # This is to train the model
-        self.model.fit(X_train_bal, y_train_bal)
+        if baseline:
+            # This is to train a baseline model
+            self.baseline_model.fit(X_train_bal, y_train_bal)
+        else:
+            # This is to train a tuned model
+            if not hasattr(self, 'tuned_model'):
+                raise ValueError("Model has not been finetuned yet. Please finetune the model first.")
+            self.tuned_model.fit(X_train_bal, y_train_bal)
 
-    def predict(self):
+    def predict(self, baseline=False):
+        '''
+        This method generates predictions using a trained model
+
+        parameters:
+        baseline: whether to generate predictions using baseline (untuned) model or a tuned one. Default is False
+        '''
         # This is to generate predictions using a trained model
-        self.y_pred = self.model.predict(self.X_test)
+        if baseline:
+            self.y_pred = self.baseline_model.predict(self.X_test)
+        else:
+            # This is to generate predictions using a tuned model
+            if not hasattr(self, 'tuned_model'):
+                raise ValueError("Model has not been finetuned yet. Please finetune the model first.")
+            self.y_pred = self.tuned_model.predict(self.X_test)
 
-    def train_predict(self, oversampling_strategy = 'SMOTENC'):
-        # This is to train and predict in one go
-        self.train(oversampling_strategy)
-        self.predict()
+    def evaluate(self):
+        self.accuracy = accuracy_score(self.y_test, self.y_pred)
+        self.precision = precision_score(self.y_test, self.y_pred, pos_label=1)
+        self.recall = recall_score(self.y_test, self.y_pred, pos_label=1)
+        self.f1_score = f1_score(self.y_test, self.y_pred, pos_label=1)
+
+        self.performance_score = {
+            "accuracy": self.accuracy,
+            "precision": self.precision,
+            "recall": self.recall,
+            "f1_score": self.f1_score
+        }
+
+        return self.performance_score
+    def train_predict(self, oversampling_strategy = 'SMOTENC', baseline=False):
+        '''
+        This is to train and predict in one go
+        '''
+
+        self.train(oversampling_strategy, baseline)
+        self.predict(baseline)
+
+    def train_predict_eval(self, oversampling_strategy = 'SMOTENC', baseline=False):
+        '''
+        This is to train, predict and evaluate in one go
+        '''
+        self.train(oversampling_strategy, baseline)
+        self.predict(baseline)
+        results = self.evaluate()
+
+        return results
 
     def finetune(self, oversampling_strategy = 'SMOTENC', metric = "f1-score", **kwargs):
         '''
@@ -350,7 +406,7 @@ class IndividualModel:
         tuning_options = self.param_info['tuning_options']
         
         # Create new optuna study
-        study = optuna.create_study(direction = tuning_options["optuna_direction"])
+        study = optuna.create_study(direction = tuning_options["optuna_direction"], **kwargs)
         study.optimize(objective, n_trials = tuning_options["n_trials"])
 
         chosen_trial = study.best_trial
@@ -362,24 +418,9 @@ class IndividualModel:
         # Update the model for future usage
 
         all_params = merge_dicts(self.tuned_params, self.static_params)
-        self.model = self.model_func(**all_params)
+        self.tuned_model = self.model_func(**all_params)
 
         return self.validation_score, self.tuned_params
-
-    def evaluate(self):
-        self.accuracy = accuracy_score(self.y_test, self.y_pred)
-        self.precision = precision_score(self.y_test, self.y_pred, pos_label=1)
-        self.recall = recall_score(self.y_test, self.y_pred, pos_label=1)
-        self.f1_score = f1_score(self.y_test, self.y_pred, pos_label=1)
-
-        self.performance_score = {
-            "accuracy": self.accuracy,
-            "precision": self.precision,
-            "recall": self.recall,
-            "f1_score": self.f1_score
-        }
-
-        return self.performance_score
     
     def plot_confusion_matrix(self, save_path=None):
         # Generate confusion matrix
@@ -398,32 +439,37 @@ class IndividualModel:
 
         return fig
 
-    def shap_explanation(self):
+    def shap_explanation(self, baseline=False):
         #shap.initjs()
 
         # Create the explainer
-        explainer = shap.Explainer(self.model.predict, self.X_test)
-
+        if baseline:
+            explainer = shap.Explainer(self.baseline_model.predict, self.X_test)
+        else:
+            if not hasattr(self, 'tuned_model'):
+                raise ValueError("Model has not been finetuned yet. Please finetune the model first.")
+            explainer = shap.Explainer(self.tuned_model.predict, self.X_test)
+        
         shap_values = explainer(self.X_test)
             
         return shap.plots.beeswarm(shap_values)
     
-    def lime_explanation(self, chosen_index, num_features):
+    # def lime_explanation(self, chosen_index, num_features):
 
-        # how do you get chosen_instance?
+    #     # how do you get chosen_instance?
 
-        explainer = lime.lime_tabular.LimeTabularExplainer(
-            self.X_train.values,
-            feature_names = self.X_train.columns,
-            class_names=self.y_train.unique().tolist(),
-            kernel_width=parameters.LIME_KERNEL_WIDTH
-        )
+    #     explainer = lime.lime_tabular.LimeTabularExplainer(
+    #         self.X_train.values,
+    #         feature_names = self.X_train.columns,
+    #         class_names=self.y_train.unique().tolist(),
+    #         kernel_width=parameters.LIME_KERNEL_WIDTH
+    #     )
 
-        predict_probability = lambda x: self.model.predict_proba(x).astype(float)
+    #     predict_probability = lambda x: self.model.predict_proba(x).astype(float)
 
-        exp = explainer.explain_instance(self.X_test.values[chosen_index], predict_probability, num_features=num_features)
+    #     exp = explainer.explain_instance(self.X_test.values[chosen_index], predict_probability, num_features=num_features)
 
-        return exp.show_in_notebook(show_all=True)
+    #     return exp.show_in_notebook(show_all=True)
     
 
 # class ModellingPipeline:
