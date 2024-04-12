@@ -1,5 +1,5 @@
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score, confusion_matrix
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_curve, roc_auc_score, auc, average_precision_score, confusion_matrix
 from imblearn.over_sampling import SMOTENC, RandomOverSampler, ADASYN
 
 import shap
@@ -438,6 +438,45 @@ class IndividualModel:
             fig.savefig(save_path)
 
         return fig
+    
+    def plot_auc(self, baseline = False, save_path=None):
+        '''
+        This function is used to generate a plot of AUC for the model perfromance.
+
+        parameters:
+        baseline: whether to plot AUC for baseline model or tuned model. Default is False
+        save_path: path to save the plot. Default is None
+        '''
+
+        if baseline:
+            y_pred_prob = self.baseline_model.predict_proba(self.X_test)[:,1]
+        else:
+            if not hasattr(self, 'tuned_model'):
+                raise ValueError("Model has not been finetuned yet. Please finetune the model first.")
+            y_pred_prob = self.tuned_model.predict_proba(self.X_test)[:,1]
+
+        print(y_pred_prob.shape)
+        
+        fpr, tpr, _ = roc_curve(self.y_test, y_pred_prob)
+
+        # Plot the AUC plot 
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        ax.plot(fpr, tpr, label='ROC curve (area = %0.3f)' % auc(fpr, tpr))
+        ax.plot([0, 1], [0, 1], 'k--')
+        ax.set_xlim([0.0, 1.0])
+        ax.set_ylim([0.0, 1.05])
+        ax.set_xlabel('False Positive Rate')
+        ax.set_ylabel('True Positive Rate')
+        ax.set_title(f'ROC Curve for {self.param_info["model_name"]}')
+        # Add the legend positioned at the lower right
+        ax.legend(loc="lower right")
+
+        # Save the figure to the specified path if provided
+        if save_path:
+            fig.savefig(save_path)
+        return fig
+
 
     def shap_explanation(self, baseline=False):
         #shap.initjs()
