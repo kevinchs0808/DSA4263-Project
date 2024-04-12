@@ -267,6 +267,10 @@ MLP_INFORMATION = {
             'finetune': False,  # Set to False since we are not fine-tuning this parameter
             'exact_value': 42,  # Specify '42' as the exact value
         },
+        'early_stopping': {
+            'finetune': False,  # Set to False since we are not fine-tuning this parameter
+            'exact_value': True,  # Specify '42' as the exact value
+        }
     },
     'tuning_options': {
         'cv_number': 5,
@@ -289,7 +293,7 @@ LGBM_INFORMATION = {
         },
         'num_leaves': {
             'finetune': True,
-            'low_value': 2,
+            'low_value': 2**2,
             'high_value': 2**8, 
             'exact_value': 31, # default is 31
             'trial': 'int',
@@ -370,12 +374,6 @@ LGBM_INFORMATION = {
 LOGISTIC_REGRESSION_INFORMATION = {
     'model_name': 'Logistic Regression',
     'potential_hyperparameters': {
-        'penalty': {
-            'finetune': True,
-            'choices': ['l2', None],
-            'exact_value': 'l2',
-            'trial': 'categorical'
-        },
         'C': {
             'finetune': True,
             'low_value': 0.1,
@@ -383,7 +381,7 @@ LOGISTIC_REGRESSION_INFORMATION = {
             'exact_value': 1.0,
             'trial': 'float',
             'use_log': False,
-            'finetuning_step': 0.1
+            'finetuning_step': None
         },
         'solver': {
             'finetune': True,
@@ -397,7 +395,7 @@ LOGISTIC_REGRESSION_INFORMATION = {
         }
     },
     'tuning_options': {
-        'cv_number': 3,
+        'cv_number': 5, # changed from 3 to 5
         'optuna_direction': "maximize",
         'n_trials': 100
     }
@@ -406,13 +404,13 @@ LOGISTIC_REGRESSION_INFORMATION = {
 SVM_INFORMATION = {
   'model_name': 'SVM',
   'potential_hyperparameters': {
-    'C': {
+    'C': { #regularisation parameter
       'finetune': True,
-      'low_value': 0.01,
-      'high_value': 100.0,
+      'low_value': 0.5,
+      'high_value': 10, # changed from 100 to 10
       'exact_value': 1.0,
       'trial': 'float',
-      'use_log': True,
+      'use_log': False,
       'finetuning_step': None
     },
     'kernel': {
@@ -445,7 +443,7 @@ SVM_INFORMATION = {
     }
   },
   'tuning_options': {
-    'cv_number': 3,
+    'cv_number': 5, # changed from 3 to 5
     'optuna_direction': "maximize",
     'n_trials': 100
   }
