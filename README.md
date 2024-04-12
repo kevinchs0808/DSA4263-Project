@@ -50,7 +50,9 @@ For this project, we aim to maximize the F1-Score of the models, as we want to m
 
 In the end, other than having great performing models, we would also love them to be interpratable as well.
 
-Hence we also show the SHAP visualization based on the 
+Hence we also show the SHAP visualization based on the feature importance for each model.
+
+This part will allow the business team to understand what factors are likely to be associated with fraudulent cases.
 
 ## Result
 
