@@ -390,6 +390,7 @@ def drop_cols(df, columns_list):
     df1.drop(columns=columns_list, inplace=True)
     return df1
 
+################################################################################
 def create_categorical_summary_statistics_df(df, columns_key_list, column):
     """
     Creates a summary DataFrame by grouping the input DataFrame based on specified key columns
@@ -404,7 +405,7 @@ def create_categorical_summary_statistics_df(df, columns_key_list, column):
     DataFrame: Summary DataFrame containing counts of values in the specified column
                grouped by key columns.
     """
-    df1 = df.groupby(columns_key_list)[column].value_counts().reset_index()
+    df1 = df.groupby(columns_key_list)[column].value_counts().reset_index(name = 'count')
     return df1
 
 ################################################################################
