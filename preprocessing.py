@@ -291,6 +291,7 @@ def create_auto_region_column(df):
 
     country_map = {
         'Acura': 'Japan',
+        'Accura': 'Japan', #Typo
         'Audi': 'Germany',
         'BMW': 'Germany',
         'Chevrolet': 'US',
@@ -303,7 +304,8 @@ def create_auto_region_column(df):
         'Saab': 'Sweden',
         'Suburu': 'Japan', #Typo
         'Toyota': 'Japan',
-        'Volkswagen': 'Germany' #Typo
+        'Volkswagen': 'Germany', #Typo
+        '?': "?"
     }
 
     # Add a new column 'auto_region' based on the mapping
@@ -430,121 +432,13 @@ def preprocessing_drop(df, cols_to_drop_list):
     df_processed = df_processed.drop(cols_to_drop_list, axis = 1)
     return df_processed
 
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
-
-def perform_SMOTENC_oversampling(X, y):
-    """
-    Perform oversampling using SMOTENC.
-
-    Parameters:
-    X (DataFrame): The input features.
-    y (Series): The target variable.
-
-    Returns:
-    DataFrame, Series: The resampled features and target variable.
-    """
-    # Define the list of numerical columns
-    num_columns_list = [
-        'months_as_customer',
-        'age',
-        'policy_deductable',
-        'policy_annual_premium',
-        'umbrella_limit',
-        'capital-gains',
-        'capital-loss',
-        'incident_hour_of_the_day',
-        'total_claim_amount',
-        'injury_claim',
-        'property_claim',
-        'vehicle_claim'
-    ]
-
-    # Obtain the indices of categorical columns
-    cat_columns_indices = [i for i, col in enumerate(X.columns) if col not in num_columns_list]
-
-    # Initialize SMOTENC with categorical feature indices and sampling strategy
-    smtnc = SMOTENC(
-        categorical_features=cat_columns_indices,
-        sampling_strategy='not majority',
-        random_state=42
-    )
-
-    # Perform oversampling
-    X_balanced, y_balanced = smtnc.fit_resample(X, y)
-
-    return X_balanced, y_balanced
-
-def perform_random_oversampling(X, y):
-    """
-    Perform oversampling using RandomOverSampler.
-
-    Parameters:
-    X (DataFrame): The input features.
-    y (Series): The target variable.
-
-    Returns:
-    DataFrame, Series: The resampled features and target variable.
-    """
-    # sampling_strategy, increase minority count to match the majority count
-    ros = RandomOverSampler(sampling_strategy = 'not majority', random_state=42)
-    X_balanced, y_balanced = ros.fit_resample(X, y)
-    return X_balanced, y_balanced
-
-def perform_ADASYN(X, y):
-    """
-    Perform oversampling using ADASYN.
-
-    Parameters:
-    X (DataFrame): The input features.
-    y (Series): The target variable.
-
-    Returns:
-    DataFrame, Series: The resampled features and target variable.
-    """
-    # sampling_strategy, increase minority count to match the majority count
-    ada = ADASYN(sampling_strategy = 'not majority', random_state=42)
-    X_balanced, y_balanced = ada.fit_resample(X, y)
-    return X_balanced, y_balanced
-
-def imbalanced_dataset_treatment(X, y, oversampling_strategy):
-    """
-    Handle imbalanced dataset by applying the specified oversampling strategy.
-
-    Parameters:
-    X (DataFrame): The input features.
-    y (Series): The target variable.
-    oversampling_strategy (str): The oversampling strategy to use. Options are "SMOTENC", "RandomOverSampler", "ADASYN", or "None" (no oversampling).
-
-    Returns:
-    DataFrame, Series: The resampled features and target variable.
-
-    Raises:
-    ValueError: If an unknown oversampling strategy is passed.
-    """
-    if oversampling_strategy == "SMOTENC":
-        X_balanced, y_balanced = perform_SMOTENC_oversampling(X, y)
-    elif oversampling_strategy == "RandomOverSampler":
-        X_balanced, y_balanced = perform_random_oversampling(X, y)
-    elif oversampling_strategy == "ADASYN":
-        X_balanced, y_balanced = perform_ADASYN(X, y)
-    elif oversampling_strategy == "None":
-        return X, y
-    else:
-        raise ValueError(f"Unknown oversampling strategy: {oversampling_strategy}")
-
-    return X_balanced, y_balanced
-
 ################################################################################
 ################################################################################
 ################################################################################
 ################################################################################
 ################################################################################
 
-def preprocess_pipeline(df, encoding, normalization, oversampling_strategy):
+def preprocess_pipeline(df, encoding, normalization):
     """
     Preprocesses the input DataFrame for machine learning modeling.
 
@@ -552,8 +446,6 @@ def preprocess_pipeline(df, encoding, normalization, oversampling_strategy):
     df (DataFrame): The input DataFrame containing features and target variable.
     encoding (bool): Flag indicating whether to perform one-hot encoding of categorical features.
     normalization (bool): Flag indicating whether to perform numerical standardization or normalization.
-    oversampling_strategy (str): The oversampling strategy to handle class imbalance.
-        Can be one of 'smotenc', 'adasyn', 'randomoversampling', or 'None'.
 
     Returns:
     DataFrame, DataFrame, Series, Series: Preprocessed training and testing features,
@@ -562,8 +454,11 @@ def preprocess_pipeline(df, encoding, normalization, oversampling_strategy):
     cols_to_drop_list = ["_c39",'policy_number', 'policy_bind_date',
                         'incident_date', 'policy_csl', 'insured_zip',
                          'auto_model', 'auto_year']
+    
     df_features = df.drop(['fraud_reported'], axis=1)
     df_label = df['fraud_reported']
+
+    df_label = df_label.replace({'Y': 1, 'N': 0})
 
     # Train Test Split
     X_train, X_test, y_train, y_test = train_test_split(df_features, df_label,
@@ -577,10 +472,6 @@ def preprocess_pipeline(df, encoding, normalization, oversampling_strategy):
     X_train = preprocessing_peizhi(X_train, encoding, normalization)
     X_train = preprocessing_vivek(X_train, encoding, normalization)
     X_train = preprocessing_drop(X_train, cols_to_drop_list)
-
-    # re-balance the training set only
-    X_train, y_train = imbalanced_dataset_treatment(X_train, y_train,
-                                                    oversampling_strategy)
 
     X_test = preprocessing_guan_yee(X_test, encoding, normalization)
     X_test = preprocessing_kevin(X_test, encoding, normalization)
