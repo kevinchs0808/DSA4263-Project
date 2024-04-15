@@ -54,6 +54,10 @@ This is the project structure for our repository
 - The dataset contains 1000 rows and 40 columns.
 - The columns recorded consist of the clients' details and their respective claims.
 - The dataset is sampled from various insurance companies from three US states: South Carolina, Virginia and Albany.
+<p align="center">
+  <img src="./images/dataset_geography.png" width = 400/>
+</p>
+
 - Each row represents a single anonymised claim record submitted by the insurance client to the insurance companies.
 - `fraud_reported` label indicates if the claim is fraudulent or not.
 - There are 200 fraudulent claims present in this dataset.
