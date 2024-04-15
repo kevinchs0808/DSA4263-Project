@@ -156,7 +156,7 @@ df = pd.read_csv("Data/Raw/insurance_claims.csv")
 Remark:
 - If you encountered the `FileNotFoundError: [Errno 2] No such file or directory: 'Data/Raw/insurance_claims.csv'` in the directory, return back to the `Download Datasets` section above.
 
-If you are using tree-based (Decision Tree or Random Tree) or gradient-boosting-tree models (XGBoost or LightGBM), normalisation is not needed. 
+If you are using tree-based (Decision Tree or Random Forest) or gradient-boosting-tree models (XGBoost or LightGBM), normalisation is not needed. 
 
 Use this pipeline in the notebook with `normalization` switched to `False`.
 ```
@@ -370,12 +370,12 @@ Remark:
 ## References
 - Akiba, T., Sano, S., Yanase, T., Ohta, T., & Koyama, M. (2019). Optuna: A Next-generation Hyperparameter Optimization Framework. Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery &amp; Data Mining, 2623–2631. https://doi.org/10.1145/3292500.3330701
 - Aqqad, A. (2023). insurance_claims. Mendeley Data, 2. https://doi.org/10.17632/992mh7dk9y.2 (This repository's dataset)  
-- Chawla, N. V., Bowyer, K. W., Hall, L. O., & Kegelmeyer, W. P. (n.d.). SMOTE: synthetic minority over-sampling technique. Journal of Artificial Intelligence Research, 16(1), 321–357. https://doi.org/https://dl.acm.org/doi/10.5555/1622407.1622416 
+- Chawla, N. V., Bowyer, K. W., Hall, L. O., & Kegelmeyer, W. P. (n.d.). SMOTE: synthetic minority over-sampling technique. Journal of Artificial Intelligence Research, 16(1), 321–357. https://dl.acm.org/doi/10.5555/1622407.1622416 
 - Chen, T., & Guestrin, C. (2016). XGBoost. Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. https://doi.org/10.1145/2939672.2939785 
 - He, H., Bai, Y., Garcia, E. A., & Li, S. (2008). Adasyn: Adaptive Synthetic Sampling Approach for imbalanced learning. 2008 IEEE International Joint Conference on Neural Networks (IEEE World Congress on Computational Intelligence). https://doi.org/10.1109/ijcnn.2008.4633969 
-- Ke, G., Meng, Q., Finley, T., Wang, T., Chen, W., & Ma, W. (2017). LightGBM: a highly efficient gradient boosting decision tree. NIPS’17: Proceedings of the 31st International Conference on Neural Information Processing Systems, 3149–3157. https://doi.org/https://dl.acm.org/doi/10.5555/3294996.3295074 
+- Ke, G., Meng, Q., Finley, T., Wang, T., Chen, W., & Ma, W. (2017). LightGBM: a highly efficient gradient boosting decision tree. NIPS’17: Proceedings of the 31st International Conference on Neural Information Processing Systems, 3149–3157. https://dl.acm.org/doi/10.5555/3294996.3295074 
 - Lundberg, S., & Lee, S.-I. (2017). A Unified Approach to Interpreting Model Predictions. NIPS 2017. https://doi.org/10.48550/arXiv.1705.07874 
-- Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Brucher, M., Perrot, M., & Duchesnay, E. (2011). Scikit-learn: Machine Learning in Python. The Journal of Machine Learning Research, 12, 2825–2830. https://doi.org/https://dl.acm.org/doi/10.5555/1953048.2078195 
+- Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Brucher, M., Perrot, M., & Duchesnay, E. (2011). Scikit-learn: Machine Learning in Python. The Journal of Machine Learning Research, 12, 2825–2830. https://dl.acm.org/doi/10.5555/1953048.2078195 
 - Snoek, J., Larochelle, H., & Adams, R. P. (2012). Practical Bayesian Optimization of Machine Learning Algorithms. https://doi.org/10.48550/arXiv.1206.2944 
 
 ## Software License
