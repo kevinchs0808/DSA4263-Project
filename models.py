@@ -7,8 +7,7 @@ import optuna
 import matplotlib.pyplot as plt
 import seaborn as sns
 import lime
-
-import parameters
+import pickle
 
 ################################################################################
 ### Oversampling Helper Functions
@@ -310,6 +309,7 @@ class IndividualModel:
         }
 
         return self.performance_score
+    
     def train_predict(self, oversampling_strategy = 'SMOTENC', baseline=False):
         '''
         This is to train and predict in one go
@@ -317,6 +317,15 @@ class IndividualModel:
 
         self.train(oversampling_strategy, baseline)
         self.predict(baseline)
+
+    def predict_eval(self, baseline=False):
+        '''
+        This is to predict and evaluate in one go
+        '''
+        self.predict(baseline)
+        results = self.evaluate()
+
+        return results
 
     def train_predict_eval(self, oversampling_strategy = 'SMOTENC', baseline=False):
         '''
@@ -492,6 +501,52 @@ class IndividualModel:
         shap_values = explainer(self.X_test)
             
         return shap.plots.beeswarm(shap_values)
+    
+    def export_model(self, path, baseline=False):
+        '''
+        This function is used to export the model to a specified path.
+
+        parameters:
+        path: path to save the model
+        baseline: whether to export the baseline model or tuned model. Default is False
+
+        upon completion:
+
+        Save the model as pickle file in the path
+        '''
+
+        if baseline:
+            model = self.baseline_model
+        else:
+            if not hasattr(self, 'tuned_model'):
+                raise ValueError("Model has not been finetuned yet. Please finetune the model first.")
+            model = self.tuned_model
+        
+        # Save the model to the specified path
+        with open(path, 'wb') as f:
+            pickle.dump(model, f)
+    
+    def import_model(self, path, baseline=False):
+        '''
+        Import a save model in a given path. The model is presumed to be in pickle file
+
+        parameters:
+        path: path to the saved model
+        baseline: whether to import the baseline model or tuned model. Default is False
+
+        upon completion:
+        model is loaded
+        '''
+
+        if not baseline:
+            if hasattr(self, 'tuned_model'):
+                print("Tuned model already exists. Overwriting the tuned model.")
+            self.tuned_model = pickle.load(open(path, 'rb'))
+        else:
+            print("loading model as baseline")
+            self.baseline_model = pickle.load(open(path, 'rb'))
+
+
     
     # def lime_explanation(self, chosen_index, num_features):
 
